@@ -10,8 +10,13 @@ const App = (() => {
     obstacles: [{ d: 1200, a: -8, v: 0, dir: versOrigine(-8) }, { d: 2250, a: 14, v: 0, dir: versOrigine(14) }]
   };
 
+  // Deux façons d'utiliser l'appli :
+  //  - mode libre (par défaut) : la roue dentée est accessible à tous, les réglages sont gardés dans le navigateur ;
+  //  - scénario n (scen = indice) : réglages imposés, obstacles cachés, pas de roue dentée…
+  //    sauf en mode professeur (5 clics sur le titre), qui donne aussi les 5 emplacements.
   // vue : indice de l'émission mise en avant dans le graphique (clic dans l'historique), ou null
-  let cfg, admin = false, sel = null, vue = null, zoom = false, son = true, flashE = -1e9, flashR = -1e9, audio = null;
+  const CLE_MODE = 'sonar-echo-scenario';
+  let cfg, scen = null, prof = false, admin = false, sel = null, vue = null, zoom = false, son = true, flashE = -1e9, flashR = -1e9, audio = null;
 
   // ---------- Configuration ----------
   const nb = (x, def, a, b) => { x = Number(x); return Number.isFinite(x) ? U.clamp(x, a, b) : def; };
@@ -20,7 +25,6 @@ const App = (() => {
     const portee = nb(c.portee, 3000, 10, 100000);
     const o = c.origine || {};
     return {
-      nom: typeof c.nom === 'string' ? c.nom.slice(0, 40) : '',   // nom du scénario chargé (effacé dès qu'on modifie)
       milieu: c.milieu === 'air' ? 'air' : 'eau',
       portee, angle: nb(c.angle, 60, 10, 180), grad: !!c.grad, duree: c.duree !== false,
       origine: { v: nb(o.v, 0, 0, 100000), dir: nb(o.dir, 90, -360, 360) },
@@ -47,7 +51,8 @@ const App = (() => {
     };
   }
 
-  function chargerInitial() {
+  // Réglages du mode libre (une adresse #c=… les remplace)
+  function chargerLibre() {
     const c = location.hash.match(/^#c=([\w.,;-]+)/);
     if (c) { try { return valide(decompacter(c[1])); } catch (e) { /* lien abîmé : on ignore */ } }
     const m = location.hash.match(/^#s=([\w-]+)/);
@@ -55,15 +60,20 @@ const App = (() => {
     const lu = U.lire(CLE);
     return valide(lu || JSON.parse(JSON.stringify(DEFAUT)));
   }
+  function lireScenario(i) {
+    const s = emplacements()[i];
+    if (!s) return null;
+    try { return valide(decompacter(s.c)); } catch (e) { return null; }
+  }
 
+  // Seul le mode libre est enregistré : un scénario modifié par le professeur ne l'est que via son emplacement
   function sauver() {
-    U.ecrire(CLE, cfg);
+    if (scen === null) U.ecrire(CLE, cfg);
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   }
 
-  // Toute modification remet la simulation à zéro (et ce n'est plus le scénario chargé, sauf au chargement)
-  function appliquer(enregistrer = true, garderNom = false) {
-    if (!garderNom) cfg.nom = '';
+  // Toute modification remet la simulation à zéro
+  function appliquer(enregistrer = true) {
     Sim.charger(cfg); vue = null; zoom = false;
     if (enregistrer) sauver();
     majEntete(); majHisto(); majBoutons();
@@ -88,7 +98,8 @@ const App = (() => {
     document.body.dataset.milieu = cfg.milieu;
     $('i-milieu').textContent = (cfg.milieu === 'eau' ? 'Eau' : 'Air') + ' · ' + U.fmtNb(VITESSES[cfg.milieu], 0) + ' m/s';
     $('i-portee').textContent = 'Portée : ' + U.fmtM(cfg.portee);
-    $('i-scen').hidden = !cfg.nom; $('i-scen').textContent = cfg.nom;
+    $('i-scen').textContent = scen === null ? 'Mode libre' : nomScen(scen);
+    $('i-scen').classList.toggle('libre', scen === null);
     document.querySelectorAll('#a-milieu button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === cfg.milieu));
     $('a-portee').value = cfg.portee; $('a-angle').value = cfg.angle; $('a-grad').checked = cfg.grad; $('a-duree').checked = cfg.duree;
   }
@@ -199,38 +210,49 @@ const App = (() => {
     catch (e) { return ''; }
   }
 
-  function chargerScenario(i) {
-    const s = emplacements()[i]; if (!s) return;
-    try { cfg = valide(decompacter(s.c)); } catch (e) { toast('Scénario illisible'); return; }
-    cfg.nom = s.nom || parDefaut(i);
-    sel = null; appliquer(true, true); majSel();
+  function nomScen(i) { const s = emplacements()[i]; return (s && s.nom) || parDefaut(i); }
+
+  // Passe dans un mode (null = libre, sinon indice du scénario) ; la session repart de zéro
+  function changerMode(i, message = true) {
+    let c;
+    if (i === null) c = chargerLibre();
+    else if (!(c = lireScenario(i))) { toast('Scénario illisible'); return; }
+    cfg = c; scen = i; U.ecrire(CLE_MODE, i); sel = null;
+    appliquer(false); majSel(); majAdmin(); majScenarios();
     $('sc-voile').hidden = true;
-    toast('« ' + cfg.nom + ' » chargé');
+    if (message) toast(i === null ? 'Mode libre' : '« ' + nomScen(i) + ' » chargé');
+  }
+
+  // Roue dentée : en mode libre pour tous, dans un scénario seulement en mode professeur
+  function majAdmin() {
+    const roue = prof || scen === null;
+    $('b-admin').hidden = !roue;
+    if (!roue && admin) basculerAdmin(false);
+    $('a-prof').hidden = !prof; $('i-prof').hidden = !prof;
   }
 
   function enregistrerEmpl(i) {
     const l = emplacements(), saisi = $('e-nom' + i).value.trim();
     if (l[i] && !confirm('Remplacer « ' + (l[i].nom || parDefaut(i)) + ' » par les réglages actuels ?')) return;
-    const nom = saisi || parDefaut(i);
-    l[i] = { nom, c: compacter(cfg) }; ecrireEmpl(l);
-    cfg.nom = nom; sauver(); majEntete();
+    l[i] = { nom: saisi || parDefaut(i), c: compacter(cfg) }; ecrireEmpl(l);
+    scen = i; U.ecrire(CLE_MODE, i); majEntete(); majScenarios();
     toast('Enregistré dans l\'emplacement ' + (i + 1));
   }
 
   function majScenarios() {
     const l = emplacements(), esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     $('a-empl').innerHTML = l.map((s, i) =>
-      '<div class="empl"><span class="empl-n">' + (i + 1) + '</span>'
+      '<div class="empl' + (i === scen ? ' courant' : '') + '"><span class="empl-n">' + (i + 1) + '</span>'
       + '<input type="text" class="empl-nom" id="e-nom' + i + '" maxlength="40" placeholder="Emplacement libre" value="' + (s ? esc(s.nom) : '') + '">'
       + '<button class="btn btn-mini" data-enr="' + i + '">Enregistrer</button>'
       + '<button class="btn btn-mini" data-ch="' + i + '"' + (s ? '' : ' disabled') + '>Charger</button>'
       + '<button class="btn btn-mini btn-icone-mini btn-danger" data-vid="' + i + '" title="Vider cet emplacement" aria-label="Vider l\'emplacement ' + (i + 1) + '"' + (s ? '' : ' disabled') + '>×</button>'
       + '</div>').join('');
-    $('sc-liste').innerHTML = l.some(Boolean)
-      ? l.map((s, i) => s
-        ? '<button class="sc-choix" data-i="' + i + '"><span class="sc-num">' + (i + 1) + '</span><span><span class="sc-nom">' + esc(s.nom || parDefaut(i)) + '</span><span class="sc-info">' + resume(s) + '</span></span></button>'
-        : '').join('')
-      : '<p class="vide">Aucun scénario pour l\'instant.</p>';
+    $('sc-liste').innerHTML =
+      '<button class="sc-choix' + (scen === null ? ' actif' : '') + '" data-i="libre"><span class="sc-num sc-libre">∞</span><span><span class="sc-nom">Mode libre</span><span class="sc-info">Règle toi-même le sonar avec la roue dentée</span></span></button>'
+      + l.map((s, i) => s
+        ? '<button class="sc-choix' + (i === scen ? ' actif' : '') + '" data-i="' + i + '"><span class="sc-num">' + (i + 1) + '</span><span><span class="sc-nom">' + esc(s.nom || parDefaut(i)) + '</span><span class="sc-info">' + resume(s) + '</span></span></button>'
+        : '').join('');
   }
 
   function exporter() {
@@ -309,22 +331,34 @@ const App = (() => {
     $('sc-fermer').addEventListener('click', () => { $('sc-voile').hidden = true; });
     $('sc-voile').addEventListener('click', e => {
       if (e.target === $('sc-voile')) { $('sc-voile').hidden = true; return; }
-      const b = e.target.closest('.sc-choix'); if (b) chargerScenario(+b.dataset.i);
+      const b = e.target.closest('.sc-choix'); if (b) changerMode(b.dataset.i === 'libre' ? null : +b.dataset.i);
     });
     $('a-empl').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.enr !== undefined) enregistrerEmpl(+b.dataset.enr);
-      if (b.dataset.ch !== undefined) chargerScenario(+b.dataset.ch);
+      if (b.dataset.ch !== undefined) changerMode(+b.dataset.ch);
       if (b.dataset.vid !== undefined) {
         const i = +b.dataset.vid, l = emplacements();
-        if (l[i] && confirm('Vider l\'emplacement ' + (i + 1) + ' (« ' + (l[i].nom || parDefaut(i)) + ' ») ?')) { l[i] = null; ecrireEmpl(l); }
+        if (l[i] && confirm('Vider l\'emplacement ' + (i + 1) + ' (« ' + (l[i].nom || parDefaut(i)) + ' ») ?')) {
+          l[i] = null; ecrireEmpl(l);
+          if (scen === i) { scen = null; U.ecrire(CLE_MODE, null); sauver(); majEntete(); majScenarios(); }
+        }
       }
     });
     // renommer un emplacement déjà rempli
     $('a-empl').addEventListener('change', e => {
       if (!e.target.classList.contains('empl-nom')) return;
       const i = +e.target.id.slice(5), l = emplacements();
-      if (l[i]) { l[i].nom = e.target.value.trim() || parDefaut(i); ecrireEmpl(l); }
+      if (l[i]) { l[i].nom = e.target.value.trim() || parDefaut(i); ecrireEmpl(l); majEntete(); }
+    });
+    // mode professeur : 5 clics rapides sur le titre (souris ou doigt), autant pour en sortir
+    let clics = 0, dernier = 0;
+    $('titre').addEventListener('click', () => {
+      const t = performance.now(); clics = t - dernier < 700 ? clics + 1 : 1; dernier = t;
+      if (clics < 5) return;
+      clics = 0; prof = !prof;
+      try { sessionStorage.setItem('sonar-echo-prof', prof ? '1' : ''); } catch (e) { /* stockage indisponible */ }
+      majAdmin(); toast(prof ? 'Mode professeur activé' : 'Mode professeur désactivé');
     });
     $('a-exporter').addEventListener('click', exporter);
     $('qr-fermer').addEventListener('click', () => { $('qr-voile').hidden = true; });
@@ -360,10 +394,14 @@ const App = (() => {
   }
 
   function demarrer() {
-    cfg = chargerInitial();
+    try { prof = sessionStorage.getItem('sonar-echo-prof') === '1'; } catch (e) { /* stockage indisponible */ }
+    // mode libre par défaut ; on rouvre le scénario de la dernière visite s'il existe encore
+    const m = U.lire(CLE_MODE);
+    scen = !/^#[cs]=/.test(location.hash) && Number.isInteger(m) && lireScenario(m) ? m : null;
+    cfg = scen === null ? chargerLibre() : lireScenario(scen);
     Sonar.init($('c-sonar')); Graphe.init($('c-graphe'));
     brancher(); majSon();
-    Sim.charger(cfg); majEntete(); majHisto(); majBoutons(); majSel(); majScenarios();
+    Sim.charger(cfg); majEntete(); majHisto(); majBoutons(); majSel(); majScenarios(); majAdmin();
     requestAnimationFrame(t => { avant = t; boucle(t); });
   }
 

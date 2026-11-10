@@ -12,17 +12,18 @@
 
 <div class="app">
   <header class="top">
-    <h1 class="titre">Sonar <span>et écho</span></h1>
+    <h1 class="titre" id="titre">Sonar <span>et écho</span></h1>
     <div class="infos">
       <span class="pastille" id="i-milieu"></span>
       <span class="pastille" id="i-portee"></span>
-      <span class="pastille pastille-scen" id="i-scen" hidden></span>
+      <span class="pastille pastille-scen" id="i-scen"></span>
+      <span class="pastille pastille-prof" id="i-prof" hidden>Mode professeur</span>
     </div>
     <div class="outils">
       <button class="btn" id="b-scen" title="Choisir l'un des scénarios préparés">Scénarios</button>
       <button class="btn btn-icone" id="b-son" title="Couper le son" aria-label="Son" aria-pressed="true"></button>
       <button class="btn" id="b-reset" title="Efface l'historique et remet tout en place">Réinitialiser</button>
-      <button class="btn btn-icone bascule" id="b-admin" title="Mode admin" aria-label="Mode admin" aria-pressed="false">
+      <button class="btn btn-icone bascule" id="b-admin" title="Réglages" aria-label="Réglages" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -32,7 +33,7 @@
     <section class="scene" aria-label="Sonar">
       <canvas id="c-sonar"></canvas>
       <div class="etat" id="etat"></div>
-      <div class="badge-admin" id="badge-admin" hidden>Mode admin : obstacles visibles</div>
+      <div class="badge-admin" id="badge-admin" hidden>Réglages : obstacles visibles</div>
     </section>
 
     <aside class="cote">
@@ -61,10 +62,10 @@
 
       <div class="carte panneau admin" id="p-admin" hidden>
         <div class="carte-tete">
-          <h2>Mode admin</h2>
+          <h2>Réglages</h2>
           <button class="btn btn-mini" id="a-fermer">Fermer</button>
         </div>
-        <p class="aide">Clique dans la zone du sonar pour placer un obstacle, puis glisse-le pour le déplacer sur son arc. Hors du mode admin, les obstacles sont invisibles.</p>
+        <p class="aide">Clique dans la zone du sonar pour placer un obstacle, puis glisse-le pour le déplacer sur son arc. Une fois les réglages fermés, les obstacles sont invisibles.</p>
         <div class="sel" id="a-sel"></div>
         <div class="champ"><span>Milieu</span>
           <div class="segment" id="a-milieu">
@@ -79,12 +80,14 @@
           <button class="btn btn-mini btn-danger" id="a-vider">Supprimer tous les obstacles</button>
         </div>
 
-        <h3 class="sous-titre">Emplacements des scénarios</h3>
+        <div id="a-prof" hidden>
+        <h3 class="sous-titre">Emplacements des scénarios (mode professeur)</h3>
         <p class="aide">« Enregistrer » range les réglages actuels dans l'emplacement, « Charger » les reprend. Les emplacements sont gardés dans ce navigateur (jusqu'à la publication de nouveaux scénarios dans l'appli) ; « Exporter » crée le fichier <b>sonar-scenarios.json</b> (dans Téléchargements) qui sert à en faire les scénarios de l'appli pour tous les élèves.</p>
         <div id="a-empl" class="empl-liste"></div>
         <div class="rangee">
           <button class="btn btn-mini" id="a-exporter">Exporter les emplacements</button>
           <button class="btn btn-mini" id="a-qr">QR code de l'appli</button>
+        </div>
         </div>
       </div>
     </aside>
