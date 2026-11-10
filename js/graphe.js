@@ -112,9 +112,12 @@ const Graphe = (() => {
       for (const r of e.recus) pics.push({ r, coul: couleurEmission(o.milieu, e.n) });
     });
     pics.sort((a, b) => a.r.delai - b.r.delai);
+    // au-delà de 4 pics visibles, seulement la lettre (les temps sont dans l'historique)
+    const visibles = pics.filter(p => px(p.r.delai) <= m.g + w + 1);
+    const avecTemps = visibles.length <= 4, larg = avecTemps ? 86 : 30;
     const places = [];
-    for (const { r, coul } of pics) {
-      const x = px(r.delai); if (x > m.g + w + 1) continue;
+    for (const { r, coul } of visibles) {
+      const x = px(r.delai);
       ctx.fillStyle = coul; ctx.beginPath(); ctx.arc(x, py(r.amp), 3.5, 0, 7); ctx.fill();
       // place libre : au-dessus du pic, sinon plus haut, sinon sous le sommet du pic
       const y0 = py(r.amp) - 16, haut = m.h + 10, bas = py(0) - 14, essais = [];
@@ -122,11 +125,11 @@ const Graphe = (() => {
       if (y0 < haut) essais.push(haut);
       for (let y = y0 + 22; y <= bas; y += 22) essais.push(y);
       // place la moins encombrée (la première libre si possible), utile sur les petits écrans
-      const gene = y => places.filter(p => Math.abs(p.x - x) < 86 && Math.abs(p.y - y) < 21).length;
+      const gene = y => places.filter(p => Math.abs(p.x - x) < larg && Math.abs(p.y - y) < 21).length;
       let y = Math.max(haut, y0), min = Infinity;
       for (const e of essais) { const n = gene(e); if (n < min) { min = n; y = e; } if (!n) break; }
       places.push({ x, y });
-      pill(U.lettre(r.k) + ' · ' + U.fmtT(r.delai, o.win), x, y, coul, th.pill);
+      pill(avecTemps ? U.lettre(r.k) + ' · ' + U.fmtT(r.delai, o.win) : U.lettre(r.k), x, y, coul, th.pill);
     }
   }
 

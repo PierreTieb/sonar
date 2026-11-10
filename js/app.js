@@ -165,7 +165,8 @@ const App = (() => {
   function basculerAdmin(b) {
     admin = b;
     $('b-admin').setAttribute('aria-pressed', admin);
-    $('p-admin').hidden = !admin; $('p-histo').hidden = admin; $('badge-admin').hidden = !admin;
+    // en mode admin, le panneau de réglages remplace le graphique et l'historique
+    $('p-admin').hidden = !admin; $('p-histo').hidden = admin; $('p-graphe').hidden = admin; $('badge-admin').hidden = !admin;
     document.querySelector('.scene').classList.toggle('admin', admin);
     if (!admin) sel = null;
     majSel();

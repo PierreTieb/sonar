@@ -43,7 +43,7 @@
         <button class="btn-emettre" id="b-emettre">Émettre</button>
       </div>
 
-      <div class="carte graphe-carte">
+      <div class="carte graphe-carte" id="p-graphe">
         <div class="carte-tete">
           <h2>Signal reçu par le sonar</h2>
           <button class="btn btn-mini" id="b-zoom" disabled>Zoom sur les échos</button>
@@ -63,6 +63,7 @@
           <button class="btn btn-mini" id="a-fermer">Fermer</button>
         </div>
         <p class="aide">Clique dans la zone du sonar pour placer un obstacle, puis glisse-le pour le déplacer sur son arc. Hors du mode admin, les obstacles sont invisibles.</p>
+        <div class="sel" id="a-sel"></div>
         <div class="champ"><span>Milieu</span>
           <div class="segment" id="a-milieu">
             <button data-m="air">Air · 340 m/s</button><button data-m="eau">Eau · 1 500 m/s</button>
@@ -72,7 +73,6 @@
         <label class="champ"><span>Ouverture du cône (°)</span><input type="number" id="a-angle" min="10" max="180" step="5"></label>
         <label class="champ"><span>Distances affichées sur le sonar</span><input type="checkbox" id="a-grad"></label>
         <label class="champ"><span>Durées de déplacement dans l'historique</span><input type="checkbox" id="a-duree"></label>
-        <div class="sel" id="a-sel"></div>
         <div class="rangee">
           <button class="btn btn-mini" id="a-qr">QR code du scénario</button>
           <button class="btn btn-mini" id="a-lien">Copier le lien</button>
