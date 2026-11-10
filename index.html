@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sonar et écho</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Figtree:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-milieu="eau">
+
+<div class="app">
+  <header class="top">
+    <h1 class="titre">Sonar <span>et écho</span></h1>
+    <div class="infos">
+      <span class="pastille" id="i-milieu"></span>
+      <span class="pastille" id="i-portee"></span>
+    </div>
+    <div class="outils">
+      <button class="btn btn-icone" id="b-son" title="Couper le son" aria-label="Son" aria-pressed="true"></button>
+      <button class="btn" id="b-reset" title="Efface l'historique et remet tout en place">Réinitialiser</button>
+      <button class="btn btn-icone bascule" id="b-admin" title="Mode admin" aria-label="Mode admin" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="corps">
+    <section class="scene" aria-label="Sonar">
+      <canvas id="c-sonar"></canvas>
+      <div class="etat" id="etat"></div>
+      <div class="badge-admin" id="badge-admin" hidden>Mode admin : obstacles visibles</div>
+    </section>
+
+    <aside class="cote">
+      <div class="carte chrono-carte">
+        <div class="chrono-bloc">
+          <div class="etiquette">Chronomètre</div>
+          <div class="chrono" id="chrono">0,000 s</div>
+          <div class="progression"><i id="prog"></i></div>
+        </div>
+        <button class="btn-emettre" id="b-emettre">Émettre</button>
+      </div>
+
+      <div class="carte graphe-carte">
+        <div class="carte-tete">
+          <h2>Signal reçu par le sonar</h2>
+          <button class="btn btn-mini" id="b-zoom" disabled>Zoom sur les échos</button>
+        </div>
+        <div class="zone"><canvas id="c-graphe"></canvas></div>
+      </div>
+
+      <div class="carte panneau" id="p-histo">
+        <h2>Historique des émissions</h2>
+        <p class="aide" id="histo-aide" hidden>Vitesse d'un obstacle : compare deux échos de la même lettre. La durée indiquée est celle du déplacement de l'obstacle : elle se compte à partir des instants où l'onde <b>touche l'obstacle</b>, ni entre les deux émissions, ni entre les deux réceptions.</p>
+        <ol id="histo"></ol>
+      </div>
+
+      <div class="carte panneau admin" id="p-admin" hidden>
+        <div class="carte-tete">
+          <h2>Mode admin</h2>
+          <button class="btn btn-mini" id="a-fermer">Fermer</button>
+        </div>
+        <p class="aide">Clique dans la zone du sonar pour placer un obstacle, puis glisse-le pour le déplacer sur son arc. Hors du mode admin, les obstacles sont invisibles.</p>
+        <div class="champ"><span>Milieu</span>
+          <div class="segment" id="a-milieu">
+            <button data-m="air">Air · 340 m/s</button><button data-m="eau">Eau · 1 500 m/s</button>
+          </div>
+        </div>
+        <label class="champ"><span>Portée maximale (m)</span><input type="number" id="a-portee" min="10" max="100000" step="10"></label>
+        <label class="champ"><span>Ouverture du cône (°)</span><input type="number" id="a-angle" min="10" max="180" step="5"></label>
+        <label class="champ"><span>Distances affichées sur le sonar</span><input type="checkbox" id="a-grad"></label>
+        <label class="champ"><span>Durées de déplacement dans l'historique</span><input type="checkbox" id="a-duree"></label>
+        <div class="sel" id="a-sel"></div>
+        <div class="rangee">
+          <button class="btn btn-mini" id="a-qr">QR code du scénario</button>
+          <button class="btn btn-mini" id="a-lien">Copier le lien</button>
+          <button class="btn btn-mini btn-danger" id="a-vider">Supprimer tous les obstacles</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="voile" id="qr-voile" hidden>
+  <div class="qr-boite" role="dialog" aria-label="QR code du scénario">
+    <h2>Scanne pour ouvrir ce scénario</h2>
+    <canvas id="qr"></canvas>
+    <p class="aide" id="qr-alerte">Attention : l'appli est ouverte depuis cet ordinateur. Ce QR code ne fonctionnera sur les téléphones qu'une fois l'appli mise en ligne.</p>
+    <p class="qr-url" id="qr-url"></p>
+    <button class="btn" id="qr-fermer">Fermer</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/lib/qrcode.min.js"></script>
+<script src="js/outils.js"></script>
+<script src="js/simulation.js"></script>
+<script src="js/sonar.js"></script>
+<script src="js/graphe.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
