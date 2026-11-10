@@ -99,6 +99,22 @@ body[data-milieu="eau"] .qr-boite{background:#061a24}
 .qr-url{font-size:.72rem;color:var(--ink-soft);word-break:break-all;margin:0;max-width:56ch}
 .vide{color:var(--ink-soft);font-size:.84rem}
 
+/* Scénarios : choix des élèves et emplacements du mode admin */
+.pastille-scen{border-color:var(--acc);color:var(--acc-hi)}
+.sc-boite{width:min(460px,100%)}
+.sc-liste{display:flex;flex-direction:column;gap:8px;width:100%}
+.sc-choix{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);cursor:pointer}
+.sc-choix:hover{border-color:var(--acc)}
+.sc-num,.empl-n{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--acc-text);font-family:var(--font-d);font-weight:700}
+.sc-nom{display:block;font-weight:800}
+.sc-info{display:block;font-size:.8rem;color:var(--ink-soft)}
+.sous-titre{font-family:var(--font-d);font-size:.9rem;font-weight:600;margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line)}
+.empl-liste{display:flex;flex-direction:column;gap:6px}
+.empl{display:flex;align-items:center;gap:6px}
+.empl-n{width:24px;height:24px;font-size:.8rem}
+.empl-nom{flex:1;min-width:0;padding:5px 9px;border-radius:10px;border:1px solid var(--line);background:var(--panel2)}
+.btn-icone-mini{width:32px;padding:0;font-size:1.1rem;line-height:1}
+
 .aide{font-size:.82rem;color:var(--ink-soft);margin:6px 0;line-height:1.38}
 .champ{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:9px 0;font-size:.9rem}
 .champ input[type="number"]{width:112px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);text-align:right;font-variant-numeric:tabular-nums}

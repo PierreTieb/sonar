@@ -16,8 +16,10 @@
     <div class="infos">
       <span class="pastille" id="i-milieu"></span>
       <span class="pastille" id="i-portee"></span>
+      <span class="pastille pastille-scen" id="i-scen" hidden></span>
     </div>
     <div class="outils">
+      <button class="btn" id="b-scen" title="Choisir l'un des scénarios préparés">Scénarios</button>
       <button class="btn btn-icone" id="b-son" title="Couper le son" aria-label="Son" aria-pressed="true"></button>
       <button class="btn" id="b-reset" title="Efface l'historique et remet tout en place">Réinitialiser</button>
       <button class="btn btn-icone bascule" id="b-admin" title="Mode admin" aria-label="Mode admin" aria-pressed="false">
@@ -74,18 +76,32 @@
         <label class="champ"><span>Distances affichées sur le sonar</span><input type="checkbox" id="a-grad"></label>
         <label class="champ"><span>Durées de déplacement dans l'historique</span><input type="checkbox" id="a-duree"></label>
         <div class="rangee">
-          <button class="btn btn-mini" id="a-qr">QR code du scénario</button>
-          <button class="btn btn-mini" id="a-lien">Copier le lien</button>
           <button class="btn btn-mini btn-danger" id="a-vider">Supprimer tous les obstacles</button>
+        </div>
+
+        <h3 class="sous-titre">Emplacements des scénarios</h3>
+        <p class="aide">« Enregistrer » range les réglages actuels dans l'emplacement, « Charger » les reprend. Les emplacements sont gardés dans ce navigateur (jusqu'à la publication de nouveaux scénarios dans l'appli) ; « Exporter » crée le fichier <b>sonar-scenarios.json</b> (dans Téléchargements) qui sert à en faire les scénarios de l'appli pour tous les élèves.</p>
+        <div id="a-empl" class="empl-liste"></div>
+        <div class="rangee">
+          <button class="btn btn-mini" id="a-exporter">Exporter les emplacements</button>
+          <button class="btn btn-mini" id="a-qr">QR code de l'appli</button>
         </div>
       </div>
     </aside>
   </main>
 </div>
 
+<div class="voile" id="sc-voile" hidden>
+  <div class="qr-boite sc-boite" role="dialog" aria-label="Choisir un scénario">
+    <h2>Choisir un scénario</h2>
+    <div class="sc-liste" id="sc-liste"></div>
+    <button class="btn" id="sc-fermer">Fermer</button>
+  </div>
+</div>
+
 <div class="voile" id="qr-voile" hidden>
-  <div class="qr-boite" role="dialog" aria-label="QR code du scénario">
-    <h2>Scanne pour ouvrir ce scénario</h2>
+  <div class="qr-boite" role="dialog" aria-label="QR code de l'appli">
+    <h2>Scanne pour ouvrir l'appli</h2>
     <canvas id="qr"></canvas>
     <p class="aide" id="qr-alerte">Attention : l'appli est ouverte depuis cet ordinateur. Ce QR code ne fonctionnera sur les téléphones qu'une fois l'appli mise en ligne.</p>
     <p class="qr-url" id="qr-url"></p>
@@ -97,6 +113,7 @@
 
 <script src="js/lib/qrcode.min.js"></script>
 <script src="js/outils.js"></script>
+<script src="js/scenarios.js"></script>
 <script src="js/simulation.js"></script>
 <script src="js/sonar.js"></script>
 <script src="js/graphe.js"></script>

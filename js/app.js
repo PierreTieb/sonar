@@ -20,6 +20,7 @@ const App = (() => {
     const portee = nb(c.portee, 3000, 10, 100000);
     const o = c.origine || {};
     return {
+      nom: typeof c.nom === 'string' ? c.nom.slice(0, 40) : '',   // nom du scénario chargé (effacé dès qu'on modifie)
       milieu: c.milieu === 'air' ? 'air' : 'eau',
       portee, angle: nb(c.angle, 60, 10, 180), grad: !!c.grad, duree: c.duree !== false,
       origine: { v: nb(o.v, 0, 0, 100000), dir: nb(o.dir, 90, -360, 360) },
@@ -60,10 +61,9 @@ const App = (() => {
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   }
 
-  function lienScenario() { return location.href.split('#')[0] + '#c=' + compacter(cfg); }
-
-  // Toute modification remet la simulation à zéro
-  function appliquer(enregistrer = true) {
+  // Toute modification remet la simulation à zéro (et ce n'est plus le scénario chargé, sauf au chargement)
+  function appliquer(enregistrer = true, garderNom = false) {
+    if (!garderNom) cfg.nom = '';
     Sim.charger(cfg); vue = null; zoom = false;
     if (enregistrer) sauver();
     majEntete(); majHisto(); majBoutons();
@@ -88,6 +88,7 @@ const App = (() => {
     document.body.dataset.milieu = cfg.milieu;
     $('i-milieu').textContent = (cfg.milieu === 'eau' ? 'Eau' : 'Air') + ' · ' + U.fmtNb(VITESSES[cfg.milieu], 0) + ' m/s';
     $('i-portee').textContent = 'Portée : ' + U.fmtM(cfg.portee);
+    $('i-scen').hidden = !cfg.nom; $('i-scen').textContent = cfg.nom;
     document.querySelectorAll('#a-milieu button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === cfg.milieu));
     $('a-portee').value = cfg.portee; $('a-angle').value = cfg.angle; $('a-grad').checked = cfg.grad; $('a-duree').checked = cfg.duree;
   }
@@ -175,9 +176,75 @@ const App = (() => {
   let minuteur;
   function toast(txt) { const t = $('toast'); t.textContent = txt; t.classList.add('vu'); clearTimeout(minuteur); minuteur = setTimeout(() => t.classList.remove('vu'), 2200); }
 
-  // ---------- QR code du scénario ----------
+  // ---------- Scénarios : 5 emplacements ----------
+  // Les élèves voient les scénarios publiés avec l'appli (js/scenarios.js).
+  // Sur le PC du professeur, les emplacements enregistrés dans le navigateur les remplacent,
+  // tant que les scénarios publiés n'ont pas changé depuis (sinon la version publiée, plus récente, reprend la main).
+  const CLE_EMPL = 'sonar-echo-emplacements', NB_EMPL = 5;
+  const propre = s => s && typeof s.c === 'string' ? { nom: String(s.nom || '').slice(0, 40), c: s.c } : null;
+  const parDefaut = i => 'Scénario ' + (i + 1);
+  function publies() {
+    const l = typeof SCENARIOS !== 'undefined' && Array.isArray(SCENARIOS) ? SCENARIOS : [];
+    return Array.from({ length: NB_EMPL }, (_, i) => propre(l[i]));
+  }
+  function emplacements() {
+    const lu = U.lire(CLE_EMPL);
+    return lu && Array.isArray(lu.l) && lu.base === JSON.stringify(publies())
+      ? Array.from({ length: NB_EMPL }, (_, i) => propre(lu.l[i])) : publies();
+  }
+  function ecrireEmpl(l) { U.ecrire(CLE_EMPL, { base: JSON.stringify(publies()), l }); majScenarios(); }
+
+  function resume(s) {
+    try { const c = valide(decompacter(s.c)); return (c.milieu === 'eau' ? 'Eau' : 'Air') + ' · portée ' + U.fmtM(c.portee); }
+    catch (e) { return ''; }
+  }
+
+  function chargerScenario(i) {
+    const s = emplacements()[i]; if (!s) return;
+    try { cfg = valide(decompacter(s.c)); } catch (e) { toast('Scénario illisible'); return; }
+    cfg.nom = s.nom || parDefaut(i);
+    sel = null; appliquer(true, true); majSel();
+    $('sc-voile').hidden = true;
+    toast('« ' + cfg.nom + ' » chargé');
+  }
+
+  function enregistrerEmpl(i) {
+    const l = emplacements(), saisi = $('e-nom' + i).value.trim();
+    if (l[i] && !confirm('Remplacer « ' + (l[i].nom || parDefaut(i)) + ' » par les réglages actuels ?')) return;
+    const nom = saisi || parDefaut(i);
+    l[i] = { nom, c: compacter(cfg) }; ecrireEmpl(l);
+    cfg.nom = nom; sauver(); majEntete();
+    toast('Enregistré dans l\'emplacement ' + (i + 1));
+  }
+
+  function majScenarios() {
+    const l = emplacements(), esc = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    $('a-empl').innerHTML = l.map((s, i) =>
+      '<div class="empl"><span class="empl-n">' + (i + 1) + '</span>'
+      + '<input type="text" class="empl-nom" id="e-nom' + i + '" maxlength="40" placeholder="Emplacement libre" value="' + (s ? esc(s.nom) : '') + '">'
+      + '<button class="btn btn-mini" data-enr="' + i + '">Enregistrer</button>'
+      + '<button class="btn btn-mini" data-ch="' + i + '"' + (s ? '' : ' disabled') + '>Charger</button>'
+      + '<button class="btn btn-mini btn-icone-mini btn-danger" data-vid="' + i + '" title="Vider cet emplacement" aria-label="Vider l\'emplacement ' + (i + 1) + '"' + (s ? '' : ' disabled') + '>×</button>'
+      + '</div>').join('');
+    $('sc-liste').innerHTML = l.some(Boolean)
+      ? l.map((s, i) => s
+        ? '<button class="sc-choix" data-i="' + i + '"><span class="sc-num">' + (i + 1) + '</span><span><span class="sc-nom">' + esc(s.nom || parDefaut(i)) + '</span><span class="sc-info">' + resume(s) + '</span></span></button>'
+        : '').join('')
+      : '<p class="vide">Aucun scénario pour l\'instant.</p>';
+  }
+
+  function exporter() {
+    const data = JSON.stringify({ appli: 'Sonar et écho', emplacements: emplacements() }, null, 2);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    a.download = 'sonar-scenarios.json'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    toast('Fichier sonar-scenarios.json créé (Téléchargements)');
+  }
+
+  // ---------- QR code de l'appli ----------
   function afficherQR() {
-    const url = lienScenario(), cv = $('qr'), ctx = cv.getContext('2d');
+    const url = location.href.split('#')[0], cv = $('qr'), ctx = cv.getContext('2d');
     const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
     const n = qr.getModuleCount(), marge = 4, cote = Math.min(560, Math.floor(Math.min(innerWidth, innerHeight) * 0.62));
     const t = Math.max(2, Math.floor(cote / (n + 2 * marge))), px = t * (n + 2 * marge);
@@ -237,18 +304,39 @@ const App = (() => {
       if (!cfg.obstacles.length || !confirm('Supprimer tous les obstacles ?')) return;
       cfg.obstacles = []; sel = null; appliquer(); majSel();
     });
-    $('a-lien').addEventListener('click', () => {
-      const url = lienScenario(), ok = () => toast('Lien du scénario copié');
-      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(ok, () => prompt('Copie ce lien :', url));
-      else prompt('Copie ce lien :', url);
-    });
     $('a-qr').addEventListener('click', afficherQR);
+    $('b-scen').addEventListener('click', () => { majScenarios(); $('sc-voile').hidden = false; });
+    $('sc-fermer').addEventListener('click', () => { $('sc-voile').hidden = true; });
+    $('sc-voile').addEventListener('click', e => {
+      if (e.target === $('sc-voile')) { $('sc-voile').hidden = true; return; }
+      const b = e.target.closest('.sc-choix'); if (b) chargerScenario(+b.dataset.i);
+    });
+    $('a-empl').addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.enr !== undefined) enregistrerEmpl(+b.dataset.enr);
+      if (b.dataset.ch !== undefined) chargerScenario(+b.dataset.ch);
+      if (b.dataset.vid !== undefined) {
+        const i = +b.dataset.vid, l = emplacements();
+        if (l[i] && confirm('Vider l\'emplacement ' + (i + 1) + ' (« ' + (l[i].nom || parDefaut(i)) + ' ») ?')) { l[i] = null; ecrireEmpl(l); }
+      }
+    });
+    // renommer un emplacement déjà rempli
+    $('a-empl').addEventListener('change', e => {
+      if (!e.target.classList.contains('empl-nom')) return;
+      const i = +e.target.id.slice(5), l = emplacements();
+      if (l[i]) { l[i].nom = e.target.value.trim() || parDefaut(i); ecrireEmpl(l); }
+    });
+    $('a-exporter').addEventListener('click', exporter);
     $('qr-fermer').addEventListener('click', () => { $('qr-voile').hidden = true; });
     $('qr-voile').addEventListener('click', e => { if (e.target === $('qr-voile')) $('qr-voile').hidden = true; });
     document.addEventListener('keydown', e => {
       if (e.target.closest('input')) return;
       if (e.code === 'Space') { e.preventDefault(); emettre(); }
-      if (e.key === 'Escape') { if (!$('qr-voile').hidden) $('qr-voile').hidden = true; else if (admin) basculerAdmin(false); }
+      if (e.key === 'Escape') {
+        if (!$('qr-voile').hidden) $('qr-voile').hidden = true;
+        else if (!$('sc-voile').hidden) $('sc-voile').hidden = true;
+        else if (admin) basculerAdmin(false);
+      }
     });
   }
 
@@ -275,7 +363,7 @@ const App = (() => {
     cfg = chargerInitial();
     Sonar.init($('c-sonar')); Graphe.init($('c-graphe'));
     brancher(); majSon();
-    Sim.charger(cfg); majEntete(); majHisto(); majBoutons(); majSel();
+    Sim.charger(cfg); majEntete(); majHisto(); majBoutons(); majSel(); majScenarios();
     requestAnimationFrame(t => { avant = t; boucle(t); });
   }
 
